@@ -1,24 +1,35 @@
 rabbitmq1:
-  image: rabbitmq:3.6.0
+  image: rabbitmq:3.6.0-management
   ports:
     - "5672:5672"
+    - "15672:15672"
+  hostname: rabbitmq1
+  environment:
+    - HOSTNAME=rabbitmq1
+    - RABBITMQ_ERLANG_COOKIE=rexrabbitroots
+    - RABBITMQ_NODENAME=rabbit@rabbitmq1
 rabbitmq2:
-  image: rabbitmq:3.6.0
-  links:
-    - rabbitmq1
+  image: rabbitmq:3.6.0-management
   ports:
     - "5673:5672"
-rabbitmq3:
-  image: rabbitmq:3.6.0
+    - "15673:15672"
   links:
-    - rabbitmq1
+    - rabbitmq1:rabbitmq1
+  hostname: rabbitmq2
+  environment:
+    - HOSTNAME=rabbitmq2
+    - RABBITMQ_ERLANG_COOKIE=rexrabbitroots
+    - RABBITMQ_NODENAME=rabbit@rabbitmq2
+rabbitmq3:
+  image: rabbitmq:3.6.0-management
   ports:
     - "5674:5672"
-management:
-  image: rabbitmq:3.6.0-management
+    - "15674:15672"
   links:
-    - rabbitmq1
-    - rabbitmq2
-    - rabbitmq3
-  ports:
-    - "15672:15672"
+    - rabbitmq1:rabbitmq1
+    - rabbitmq2:rabbitmq2
+  hostname: rabbitmq3
+  environment:
+    - HOSTNAME=rabbitmq3
+    - RABBITMQ_ERLANG_COOKIE=rexrabbitroots
+    - RABBITMQ_NODENAME=rabbit@rabbitmq3
