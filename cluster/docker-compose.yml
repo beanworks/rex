@@ -5,9 +5,7 @@ rabbitmq1:
     - "15672:15672"
   hostname: rabbitmq1
   environment:
-    - HOSTNAME=rabbitmq1
-    - RABBITMQ_ERLANG_COOKIE=rexrabbitroots
-    - RABBITMQ_NODENAME=rabbit@rabbitmq1
+    - RABBITMQ_ERLANG_COOKIE='Rex Rabbit Roots'
 rabbitmq2:
   image: rabbitmq:3.6.0-management
   ports:
@@ -17,9 +15,7 @@ rabbitmq2:
     - rabbitmq1:rabbitmq1
   hostname: rabbitmq2
   environment:
-    - HOSTNAME=rabbitmq2
-    - RABBITMQ_ERLANG_COOKIE=rexrabbitroots
-    - RABBITMQ_NODENAME=rabbit@rabbitmq2
+    - RABBITMQ_ERLANG_COOKIE='Rex Rabbit Roots'
 rabbitmq3:
   image: rabbitmq:3.6.0-management
   ports:
@@ -30,6 +26,4 @@ rabbitmq3:
     - rabbitmq2:rabbitmq2
   hostname: rabbitmq3
   environment:
-    - HOSTNAME=rabbitmq3
-    - RABBITMQ_ERLANG_COOKIE=rexrabbitroots
-    - RABBITMQ_NODENAME=rabbit@rabbitmq3
+    - RABBITMQ_ERLANG_COOKIE='Rex Rabbit Roots'

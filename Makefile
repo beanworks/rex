@@ -8,14 +8,17 @@ cluster-up:
 		docker-compose up -d --force-recreate
 
 cluster-join:
-	docker exec -it rex_rabbitmq1_1 sh -c 'rabbitmqctl stop_app'
-	docker exec -it rex_rabbitmq1_1 sh -c 'rabbitmqctl reset'
-	docker exec -it rex_rabbitmq1_1 sh -c 'rabbitmqctl start_app'
-	docker exec -it rex_rabbitmq2_1 sh -c 'rabbitmqctl stop_app'
-	docker exec -it rex_rabbitmq2_1 sh -c 'rabbitmqctl reset'
-	docker exec -it rex_rabbitmq2_1 sh -c 'rabbitmqctl join_cluster rabbit@rabbitmq1'
-	docker exec -it rex_rabbitmq2_1 sh -c 'rabbitmqctl start_app'
-	docker exec -it rex_rabbitmq3_1 sh -c 'rabbitmqctl stop_app'
-	docker exec -it rex_rabbitmq3_1 sh -c 'rabbitmqctl reset'
-	docker exec -it rex_rabbitmq3_1 sh -c 'rabbitmqctl join_cluster rabbit@rabbitmq1'
-	docker exec -it rex_rabbitmq3_1 sh -c 'rabbitmqctl start_app'
+	# Reset rabbitmq1
+	docker exec rex_rabbitmq1_1 rabbitmqctl stop_app
+	docker exec rex_rabbitmq1_1 rabbitmqctl reset
+	docker exec rex_rabbitmq1_1 rabbitmqctl start_app
+	# Reset rabbitmq2 and join cluster with rabbitmq1
+	docker exec rex_rabbitmq2_1 rabbitmqctl stop_app
+	docker exec rex_rabbitmq2_1 rabbitmqctl reset
+	docker exec rex_rabbitmq2_1 rabbitmqctl join_cluster rabbit@rabbitmq1
+	docker exec rex_rabbitmq2_1 rabbitmqctl start_app
+	# Reset rabbitmq3 and join cluster with rabbitmq1
+	docker exec rex_rabbitmq3_1 rabbitmqctl stop_app
+	docker exec rex_rabbitmq3_1 rabbitmqctl reset
+	docker exec rex_rabbitmq3_1 rabbitmqctl join_cluster rabbit@rabbitmq1
+	docker exec rex_rabbitmq3_1 rabbitmqctl start_app
