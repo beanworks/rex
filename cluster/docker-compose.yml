@@ -1,7 +1,6 @@
 rabbitmq1:
   image: rabbitmq:3.6.0-management
   ports:
-    - "5672:5672"
     - "15672:15672"
   hostname: rabbitmq1
   environment:
@@ -9,7 +8,6 @@ rabbitmq1:
 rabbitmq2:
   image: rabbitmq:3.6.0-management
   ports:
-    - "5673:5672"
     - "15673:15672"
   links:
     - rabbitmq1:rabbitmq1
@@ -19,7 +17,6 @@ rabbitmq2:
 rabbitmq3:
   image: rabbitmq:3.6.0-management
   ports:
-    - "5674:5672"
     - "15674:15672"
   links:
     - rabbitmq1:rabbitmq1
@@ -27,3 +24,13 @@ rabbitmq3:
   hostname: rabbitmq3
   environment:
     - RABBITMQ_ERLANG_COOKIE='Rex Rabbit Roots'
+haproxy:
+  image: haproxy:1.6.3
+  ports:
+    - "5672:5672"
+  links:
+    - rabbitmq1:rabbitmq1
+    - rabbitmq2:rabbitmq2
+    - rabbitmq3:rabbitmq3
+  volumes:
+    - ../haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
