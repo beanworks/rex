@@ -25,12 +25,10 @@ rabbitmq3:
   environment:
     - RABBITMQ_ERLANG_COOKIE='Rex Rabbit Roots'
 haproxy:
-  image: haproxy:1.6.3
+  build: ./haproxy
   ports:
     - "5672:5672"
   links:
     - rabbitmq1:rabbitmq1
     - rabbitmq2:rabbitmq2
     - rabbitmq3:rabbitmq3
-  volumes:
-    - ../haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro

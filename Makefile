@@ -1,10 +1,13 @@
 .PHONY: cluster
 
+COMPOSE_PROJECT_NAME := rex
+COMPOSE_FILE := cluster/docker-compose.yml
+
 cluster: cluster-up cluster-join
 
 cluster-up:
-	env COMPOSE_PROJECT_NAME=rex \
-		COMPOSE_FILE=cluster/docker-compose.yml \
+	env COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_NAME) \
+		COMPOSE_FILE=$(COMPOSE_FILE) \
 		docker-compose up -d --force-recreate
 
 cluster-join:
