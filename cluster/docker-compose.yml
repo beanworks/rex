@@ -27,6 +27,7 @@ rabbitmq3:
 haproxy:
   build: ./haproxy
   ports:
+    - "1936:1936"
     - "5672:5672"
   links:
     - rabbitmq1:rabbitmq1

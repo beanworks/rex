@@ -2,13 +2,16 @@
 
 COMPOSE_PROJECT_NAME := rex
 COMPOSE_FILE := cluster/docker-compose.yml
+COMPOSE_ENV := env COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_NAME) \
+				   COMPOSE_FILE=$(COMPOSE_FILE)
 
 cluster: cluster-up cluster-join
 
-cluster-up:
-	env COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_NAME) \
-		COMPOSE_FILE=$(COMPOSE_FILE) \
-		docker-compose up -d --force-recreate
+cluster-up: cluster-build
+	$(COMPOSE_ENV) docker-compose up -d --force-recreate
+
+cluster-build:
+	$(COMPOSE_ENV) docker-compose build
 
 cluster-join:
 	# Reset rabbitmq1
