@@ -7,6 +7,10 @@ RABBIT_VHOST = rex
 RABBIT_USER = rex
 RABBIT_USER_PASS = $(RABBIT_USER) passw0rd
 
+RABBIT_1_CTL = docker exec rex_rabbitmq1_1 rabbitmqctl
+RABBIT_2_CTL = docker exec rex_rabbitmq2_1 rabbitmqctl
+RABBIT_3_CTL = docker exec rex_rabbitmq3_1 rabbitmqctl
+
 cluster: cluster-build cluster-up cluster-config
 
 cluster-build:
@@ -19,25 +23,25 @@ cluster-config: rabbit-join rabbit-user rabbit-perm rabbit-ha
 
 rabbit-join:
 	# Reset rabbitmq1
-	docker exec rex_rabbitmq1_1 rabbitmqctl stop_app
-	docker exec rex_rabbitmq1_1 rabbitmqctl reset
-	docker exec rex_rabbitmq1_1 rabbitmqctl start_app
+	$(RABBIT_1_CTL) stop_app
+	$(RABBIT_1_CTL) reset
+	$(RABBIT_1_CTL) start_app
 	# Reset rabbitmq2 and join cluster with rabbitmq1
-	docker exec rex_rabbitmq2_1 rabbitmqctl stop_app
-	docker exec rex_rabbitmq2_1 rabbitmqctl reset
-	docker exec rex_rabbitmq2_1 rabbitmqctl join_cluster rabbit@rabbitmq1
-	docker exec rex_rabbitmq2_1 rabbitmqctl start_app
+	$(RABBIT_2_CTL) stop_app
+	$(RABBIT_2_CTL) reset
+	$(RABBIT_2_CTL) join_cluster rabbit@rabbitmq1
+	$(RABBIT_2_CTL) start_app
 	# Reset rabbitmq3 and join cluster with rabbitmq1
-	docker exec rex_rabbitmq3_1 rabbitmqctl stop_app
-	docker exec rex_rabbitmq3_1 rabbitmqctl reset
-	docker exec rex_rabbitmq3_1 rabbitmqctl join_cluster rabbit@rabbitmq1
-	docker exec rex_rabbitmq3_1 rabbitmqctl start_app
+	$(RABBIT_3_CTL) stop_app
+	$(RABBIT_3_CTL) reset
+	$(RABBIT_3_CTL) join_cluster rabbit@rabbitmq1
+	$(RABBIT_3_CTL) start_app
 
 rabbit-user:
-	docker exec rex_rabbitmq1_1 rabbitmqctl add_user $(RABBIT_USER_PASS)
+	$(RABBIT_1_CTL) add_user $(RABBIT_USER_PASS)
 
 rabbit-perm:
-	docker exec rex_rabbitmq1_1 rabbitmqctl add_vhost $(RABBIT_VHOST)
+	$(RABBIT_1_CTL) add_vhost $(RABBIT_VHOST)
 
 rabbit-ha:
-	echo
+	$(RABBIT_1_CTL) set_policy rex-ha-all "^rex\.ha\." '{"ha-mode":"all"}'
