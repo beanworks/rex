@@ -39,9 +39,11 @@ rabbit-join:
 
 rabbit-user:
 	$(RABBIT_1_CTL) add_user $(RABBIT_USER_PASS)
+	$(RABBIT_1_CTL) set_user_tags $(RABBIT_USER) administrator
 
 rabbit-perm:
 	$(RABBIT_1_CTL) add_vhost $(RABBIT_VHOST)
+	$(RABBIT_1_CTL) set_permissions -p $(RABBIT_VHOST) $(RABBIT_USER) ".*" ".*" ".*"
 
 rabbit-ha:
 	$(RABBIT_1_CTL) set_policy rex-ha-all "^rex\.ha\." '{"ha-mode":"all"}'
