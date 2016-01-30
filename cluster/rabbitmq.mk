@@ -5,7 +5,7 @@ COMPOSE_ENV = env COMPOSE_PROJECT_NAME=rex \
 
 RABBIT_VHOST = rex
 RABBIT_USER = rex
-RABBIT_USER_PASS = $(RABBIT_USER) passw0rd
+RABBIT_PASS = passw0rd
 
 RABBIT_1_CTL = docker exec rex_rabbitmq1_1 rabbitmqctl
 RABBIT_2_CTL = docker exec rex_rabbitmq2_1 rabbitmqctl
@@ -38,7 +38,7 @@ rabbit-join:
 	$(RABBIT_3_CTL) start_app
 
 rabbit-user:
-	$(RABBIT_1_CTL) add_user $(RABBIT_USER_PASS)
+	$(RABBIT_1_CTL) add_user $(RABBIT_USER) $(RABBIT_PASS)
 	$(RABBIT_1_CTL) set_user_tags $(RABBIT_USER) administrator
 
 rabbit-perm:
