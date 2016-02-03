@@ -10,25 +10,18 @@ import (
 
 var cfgFile string
 
-// This represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
+var RexCmd = &cobra.Command{
 	Use:   "rex",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Short: "Rex rabbit likes consuming queued messages",
+	Long: `Rex rabbit is a command line message queue consumer for RabbitMQ.
+Rex pulls messages from a queue, takes a good care of the jobs,
+redirects message bodies to other responsible parties.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+When Rex is not busy, he also likes to hang out with Octocat.`,
 }
 
-// Execute adds all child commands to the root command sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	if err := RootCmd.Execute(); err != nil {
+	if err := RexCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
@@ -41,13 +34,12 @@ func init() {
 	// Cobra supports Persistent Flags, which, if defined here,
 	// will be global for your application.
 
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.rex.yaml)")
+	RexCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.rex.yml)")
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	RexCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-// initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	if cfgFile != "" { // enable ability to specify config file via flag
 		viper.SetConfigFile(cfgFile)
