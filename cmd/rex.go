@@ -49,12 +49,15 @@ func initConfig() {
 		viper.SetConfigFile(CfgFile)
 	}
 
-	viper.SetConfigName(".rex")  // name of config file (without extension)
-	viper.AddConfigPath("$HOME") // adding home directory as first search path
-	viper.AutomaticEnv()         // read in environment variables that match
+	viper.SetConfigName("config")
+	viper.AddConfigPath("/etc/rex/")
+	viper.AddConfigPath("$HOME/.rex")
+	viper.AddConfigPath(".")
+	viper.AutomaticEnv()
 
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
+	if err := viper.ReadInConfig(); err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	} else {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
 }
