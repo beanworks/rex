@@ -9,12 +9,8 @@ import (
 var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Start hopping a rex rabbit consumer",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long: `Tell rex rabbit to start hopping, and consume messages from RabbitMQ.
+A config file will need to be provided, and passed into this command.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
 		fmt.Println("up called")

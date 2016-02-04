@@ -8,7 +8,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
+var Version bool
+var CfgFile string
 
 var RexCmd = &cobra.Command{
 	Use:   "rex",
@@ -18,6 +19,13 @@ Rex pulls messages from a queue, takes a good care of the jobs,
 redirects message bodies to other responsible parties.
 
 When Rex is not busy, he also likes to hang out with Octocat.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if Version {
+			cmd.Println(GetVersionString())
+		} else {
+			cmd.Println(cmd.UsageString())
+		}
+	},
 }
 
 func Execute() {
@@ -30,19 +38,15 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports Persistent Flags, which, if defined here,
-	// will be global for your application.
+	RexCmd.PersistentFlags().StringVarP(&CfgFile, "config", "c", "", "config file (default is $HOME/.rex.yml)")
+	RexCmd.Flags().BoolVarP(&Version, "version", "v", false, "Show rex version")
 
-	RexCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.rex.yml)")
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	RexCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	RexCmd.Flags().SetAnnotation("config", cobra.BashCompFilenameExt, []string{"yaml", "yml"})
 }
 
 func initConfig() {
-	if cfgFile != "" { // enable ability to specify config file via flag
-		viper.SetConfigFile(cfgFile)
+	if CfgFile != "" { // enable ability to specify config file via flag
+		viper.SetConfigFile(CfgFile)
 	}
 
 	viper.SetConfigName(".rex")  // name of config file (without extension)
