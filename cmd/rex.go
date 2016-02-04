@@ -23,7 +23,7 @@ When Rex is not busy, he also likes to hang out with Octocat.`,
 		if Version {
 			cmd.Println(GetVersionString())
 		} else {
-			cmd.Println(cmd.UsageString())
+			cmd.Help()
 		}
 	},
 }
