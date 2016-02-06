@@ -11,7 +11,9 @@ var upCmd = &cobra.Command{
 	Long: `Tell rex rabbit to start hopping, and consume messages from RabbitMQ.
 A config file will need to be provided, and passed into this command.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		consumer := rabbit.New()
+		logger, _ := rabbit.NewLogger(&Config)
+		worker, _ := rabbit.NewWorker(&Config, logger)
+		worker.Consume()
 	},
 }
 

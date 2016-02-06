@@ -23,6 +23,7 @@ _testmain.go
 *.test
 *.prof
 
+*.log
 *.swp
 *.yml
 .DS_Store

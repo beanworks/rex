@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/beanworks/rex/rabbit"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var Version bool
 var CfgFile string
+var Config rabbit.Config
 
 var RexCmd = &cobra.Command{
 	Use:   "rex",
@@ -59,5 +61,9 @@ func initConfig() {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	} else {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	}
+
+	if err := viper.Unmarshal(&Config); err != nil {
+		panic(fmt.Errorf("Unable to decode config into struct, %v \n", err))
 	}
 }

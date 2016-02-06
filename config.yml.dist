@@ -1,0 +1,25 @@
+connection:
+  host: localhost
+  username: rex
+  password: passw0rd
+  vhost: rex
+  port: 5672
+
+channel:
+  exchange:
+    name: rex.xchange
+    type: direct
+    auto_delete: false
+    durable: true
+  prefetch:
+    count: 3
+    global: true
+  queue: rex.ha.testing
+
+worker:
+  script: "ps aux"
+
+logger:
+  appenders:
+    file: ./rex.log
+    stdout: true
