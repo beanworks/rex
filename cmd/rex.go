@@ -64,6 +64,6 @@ func initConfig() {
 	}
 
 	if err := viper.Unmarshal(&Config); err != nil {
-		panic(fmt.Errorf("Unable to decode config into struct, %v \n", err))
+		panic(fmt.Errorf("Unable to decode config into struct, %s \n", err))
 	}
 }

@@ -7,37 +7,52 @@ import (
 )
 
 type Logger struct {
-	Log *log.Logger
+	Log    *log.Logger
+	Writer struct {
+		Out []io.Writer
+		Err []io.Writer
+	}
 }
 
 func NewLogger(c *Config) (*Logger, error) {
-	var appenders = []io.Writer{}
+	l := &Logger{}
 
-	filename := c.Logger.Appenders.File
-	if filename != "" {
-		file, err := os.OpenFile(filename, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+	fileAppender := c.Logger.Appenders.File
+	if fileAppender.Enabled && fileAppender.Path != "" {
+		file, err := os.OpenFile(
+			fileAppender.Path,
+			os.O_RDWR|os.O_APPEND|os.O_CREATE,
+			0660,
+		)
 		if err != nil {
 			return nil, err
 		}
-		appenders = append(appenders, file)
+		l.Writer.Out = append(l.Writer.Out, file)
+		l.Writer.Err = append(l.Writer.Err, file)
 	}
 
-	useStdout := c.Logger.Appenders.Stdout
-	if useStdout || len(appenders) == 0 {
-		appenders = append(appenders, os.Stdout)
+	echoAppender := c.Logger.Appenders.Echo
+	if echoAppender.Enabled || len(l.Writer.Out) == 0 {
+		l.Writer.Out = append(l.Writer.Out, os.Stdout)
+		l.Writer.Err = append(l.Writer.Err, os.Stderr)
 	}
 
-	return &Logger{
-		Log: log.New(io.MultiWriter(appenders...), "", log.Ldate|log.Ltime),
-	}, nil
+	l.Log = log.New(
+		io.MultiWriter(l.Writer.Out...),
+		"INFO: ",
+		log.Ldate|log.Ltime,
+	)
+	return l, nil
 }
 
 func (l *Logger) Info(format string, v ...interface{}) {
 	l.Log.SetPrefix("INFO: ")
+	l.Log.SetOutput(io.MultiWriter(l.Writer.Out...))
 	l.Log.Printf(format, v...)
 }
 
 func (l *Logger) Error(format string, v ...interface{}) {
 	l.Log.SetPrefix("ERROR: ")
+	l.Log.SetOutput(io.MultiWriter(l.Writer.Err...))
 	l.Log.Printf(format, v...)
 }

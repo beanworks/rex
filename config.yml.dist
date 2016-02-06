@@ -5,7 +5,7 @@ connection:
   vhost: rex
   port: 5672
 
-channel:
+worker:
   exchange:
     name: rex.xchange
     type: direct
@@ -15,11 +15,12 @@ channel:
     count: 3
     global: true
   queue: rex.ha.testing
-
-worker:
   script: "ps aux"
 
 logger:
   appenders:
-    file: ./rex.log
-    stdout: true
+    file:
+      enabled: true
+      path: ./rex.log
+    echo:
+      enabled: true

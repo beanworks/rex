@@ -8,7 +8,7 @@ type Config struct {
 		Vhost    string
 		Port     int
 	}
-	Channel struct {
+	Worker struct {
 		Exchange struct {
 			Name       string
 			Type       string
@@ -19,15 +19,18 @@ type Config struct {
 			Count  int
 			Global bool
 		}
-		Queue string
-	}
-	Worker struct {
+		Queue  string
 		Script string
 	}
 	Logger struct {
 		Appenders struct {
-			File   string
-			Stdout bool
+			File struct {
+				Enabled bool
+				Path    string
+			}
+			Echo struct {
+				Enabled bool
+			}
 		}
 	}
 }
