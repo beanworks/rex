@@ -12,14 +12,18 @@ type Config struct {
 		Exchange struct {
 			Name       string
 			Type       string
-			AutoDelete bool `mapstructure:"auto_delete"`
 			Durable    bool
+			AutoDelete bool `mapstructure:"auto_delete"`
 		}
 		Prefetch struct {
 			Count  int
 			Global bool
 		}
-		Queue  string
+		Queue struct {
+			Name       string
+			Durable    bool
+			AutoDelete bool `mapstructure:"auto_delete"`
+		}
 		Script string
 	}
 	Logger struct {
