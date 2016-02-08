@@ -46,4 +46,4 @@ rabbit-perm:
 	$(RABBIT_1_CTL) set_permissions -p $(RABBIT_VHOST) $(RABBIT_USER) ".*" ".*" ".*"
 
 rabbit-ha:
-	$(RABBIT_1_CTL) set_policy rex-ha-all "^rex\.ha\." '{"ha-mode":"all"}'
+	$(RABBIT_1_CTL) set_policy -p $(RABBIT_VHOST) rex-ha-all "^rex\.ha\." '{"ha-mode":"all"}'
