@@ -1,8 +1,12 @@
 package rabbit
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/url"
+	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/streadway/amqp"
 )
@@ -46,7 +50,7 @@ func (w *Worker) Connect() error {
 		c.Vhost,
 	))
 	if err != nil {
-		return fmt.Errorf("Failed connecting RabbitMQ: %s", err)
+		return w.Logger.Error("Failed connecting RabbitMQ: %s", err)
 	}
 	w.Logger.Info("[Done]")
 	w.Connection = conn
@@ -57,7 +61,7 @@ func (w *Worker) OpenChannel() error {
 	w.Logger.Info("Opening channel...")
 	ch, err := w.Connection.Channel()
 	if err != nil {
-		return fmt.Errorf("Failed to open a channel: %s", err)
+		return w.Logger.Error("Failed to open a channel: %s", err)
 	}
 	w.Logger.Info("[Done]")
 	w.Channel = ch
@@ -76,7 +80,7 @@ func (w *Worker) SetupPrefetch() error {
 		p.Global, // global bool
 	)
 	if err != nil {
-		return fmt.Errorf("Failed to set QoS: %s", err)
+		return w.Logger.Error("Failed to set QoS: %s", err)
 	}
 	w.Logger.Info("[Done]")
 	return nil
@@ -94,7 +98,7 @@ func (w *Worker) CreateQueue() error {
 		nil,          // args Table
 	)
 	if err != nil {
-		return fmt.Errorf("Failed to declare queue: %s", err)
+		return w.Logger.Error("Failed to declare queue: %s", err)
 	}
 	w.Logger.Info("[Done]")
 	return nil
@@ -122,7 +126,7 @@ func (w *Worker) CreateExchange() error {
 		amqp.Table{}, // args Table
 	)
 	if err != nil {
-		return fmt.Errorf("Failed to declare exchange: %s", err)
+		return w.Logger.Error("Failed to declare exchange: %s", err)
 	}
 	w.Logger.Info("[Done]")
 
@@ -136,12 +140,65 @@ func (w *Worker) CreateExchange() error {
 		nil,    // args Table
 	)
 	if err != nil {
-		return fmt.Errorf("Failed to bind queue to exchange: %s", err)
+		return w.Logger.Error("Failed to bind queue to exchange: %s", err)
 	}
 	w.Logger.Info("[Done]")
 
 	return nil
 }
 
-func (w *Worker) Consume() {
+func (w *Worker) Consume() error {
+	w.Logger.Info("Starting a new consumer...")
+	msgs, err := w.Channel.Consume(
+		w.Config.Worker.Queue.Name, // queue string
+		"",    // consumer string
+		false, // autoAck bool
+		false, // exclusive bool
+		false, // noLocal bool
+		false, // noWait bool
+		nil,   // args Table
+	)
+	if err != nil {
+		return w.Logger.Error("Failed to register a consumer: %s", err)
+	}
+	w.Logger.Info("[Done]")
+
+	defer w.Connection.Close()
+	defer w.Channel.Close()
+
+	closeErr := make(chan *amqp.Error)
+	w.Connection.NotifyClose(closeErr)
+	go func() {
+		w.Logger.Error("Connection closed: %v", <-closeErr)
+		os.Exit(10)
+	}()
+
+	forever := make(chan bool)
+	go func() {
+		for m := range msgs {
+			if out, err := w.Cmd(m.Body).CombinedOutput(); err != nil {
+				w.Logger.Error("Failed to process message: %s \n Output: %s", err, out)
+				m.Nack(true, true)
+			} else {
+				w.Logger.Info("One message processed")
+				m.Ack(true)
+			}
+		}
+	}()
+	w.Logger.Info("Waiting for messages...")
+	<-forever
+
+	return nil
+}
+
+func (w *Worker) Cmd(msg []byte) *exec.Cmd {
+	var name string = w.Config.Worker.Script
+	var args []string
+
+	if subs := strings.Split(name, " "); len(subs) > 1 {
+		name, args = subs[0], subs[1:]
+	}
+
+	args = append(args, base64.StdEncoding.EncodeToString(msg))
+	return exec.Command(name, args...)
 }

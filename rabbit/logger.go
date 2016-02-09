@@ -1,6 +1,7 @@
 package rabbit
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -51,8 +52,9 @@ func (l *Logger) Info(format string, v ...interface{}) {
 	l.Log.Printf(format, v...)
 }
 
-func (l *Logger) Error(format string, v ...interface{}) {
+func (l *Logger) Error(format string, v ...interface{}) error {
 	l.Log.SetPrefix("ERROR: ")
 	l.Log.SetOutput(io.MultiWriter(l.Writer.Err...))
 	l.Log.Printf(format, v...)
+	return fmt.Errorf(format, v...)
 }
