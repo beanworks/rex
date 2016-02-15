@@ -1,60 +1,51 @@
 package rabbit
 
 import (
+	"flag"
 	"fmt"
-	"io"
-	"log"
-	"os"
+
+	"github.com/golang/glog"
 )
 
-type Logger struct {
-	Log    *log.Logger
-	Writer struct {
-		Out []io.Writer
-		Err []io.Writer
-	}
-}
+type Logger struct{}
 
 func NewLogger(c *Config) (*Logger, error) {
-	l := &Logger{}
+	cfg := c.Logger
 
-	fileAppender := c.Logger.Appenders.File
-	if fileAppender.Enabled && fileAppender.Path != "" {
-		file, err := os.OpenFile(
-			fileAppender.Path,
-			os.O_RDWR|os.O_APPEND|os.O_CREATE,
-			0660,
-		)
-		if err != nil {
-			return nil, err
-		}
-		l.Writer.Out = append(l.Writer.Out, file)
-		l.Writer.Err = append(l.Writer.Err, file)
+	flag.Parse()
+	if cfg.LogToStderr {
+		flag.Lookup("logtostderr").Value.Set("true")
+	}
+	if cfg.AlsoLogToStderr {
+		flag.Lookup("alsologtostderr").Value.Set("true")
+	}
+	if cfg.LogDir != "" {
+		flag.Lookup("log_dir").Value.Set(cfg.LogDir)
 	}
 
-	echoAppender := c.Logger.Appenders.Echo
-	if echoAppender.Enabled || len(l.Writer.Out) == 0 {
-		l.Writer.Out = append(l.Writer.Out, os.Stdout)
-		l.Writer.Err = append(l.Writer.Err, os.Stderr)
-	}
-
-	l.Log = log.New(
-		io.MultiWriter(l.Writer.Out...),
-		"INFO: ",
-		log.Ldate|log.Ltime,
-	)
-	return l, nil
+	return &Logger{}, nil
 }
 
 func (l *Logger) Info(format string, v ...interface{}) {
-	l.Log.SetPrefix("INFO: ")
-	l.Log.SetOutput(io.MultiWriter(l.Writer.Out...))
-	l.Log.Printf(format, v...)
+	glog.InfoDepth(1, fmt.Sprintf(format, v...))
 }
 
-func (l *Logger) Error(format string, v ...interface{}) error {
-	l.Log.SetPrefix("ERROR: ")
-	l.Log.SetOutput(io.MultiWriter(l.Writer.Err...))
-	l.Log.Printf(format, v...)
-	return fmt.Errorf(format, v...)
+func (l *Logger) Warn(format string, v ...interface{}) {
+	glog.WarningDepth(1, fmt.Sprintf(format, v...))
+}
+
+func (l *Logger) Error(format string, v ...interface{}) {
+	glog.ErrorDepth(1, fmt.Sprintf(format, v...))
+}
+
+func (l *Logger) Fatal(format string, v ...interface{}) {
+	glog.FatalDepth(1, fmt.Sprintf(format, v...))
+}
+
+func (l *Logger) Exit(format string, v ...interface{}) {
+	glog.ExitDepth(1, fmt.Sprintf(format, v...))
+}
+
+func (l *Logger) Flush() {
+	glog.Flush()
 }

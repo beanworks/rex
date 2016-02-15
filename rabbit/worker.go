@@ -4,9 +4,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/url"
-	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/streadway/amqp"
 )
@@ -19,28 +19,22 @@ type Worker struct {
 }
 
 func NewWorker(c *Config, l *Logger) (*Worker, error) {
+	defer l.Flush()
 	w := &Worker{Config: c, Logger: l}
-	if err := w.Connect(); err != nil {
+	if err := w.connect(); err != nil {
 		return nil, err
 	}
-	if err := w.OpenChannel(); err != nil {
-		return nil, err
-	}
-	if err := w.SetupPrefetch(); err != nil {
-		return nil, err
-	}
-	if err := w.CreateQueue(); err != nil {
-		return nil, err
-	}
-	if err := w.CreateExchange(); err != nil {
+	if err := w.createQueueAndExchange(); err != nil {
 		return nil, err
 	}
 	return w, nil
 }
 
-func (w *Worker) Connect() error {
+func (w *Worker) connect() (err error) {
 	c := w.Config.Connection
-	w.Logger.Info("Connecting RabbitMQ...")
+	p := w.Config.Worker.Prefetch
+
+	w.Logger.Info("Connecting to RabbitMQ server...")
 	conn, err := amqp.Dial(fmt.Sprintf(
 		"amqp://%s:%s@%s:%d/%s", // amqp scheme
 		url.QueryEscape(c.Username),
@@ -50,104 +44,97 @@ func (w *Worker) Connect() error {
 		c.Vhost,
 	))
 	if err != nil {
-		return w.Logger.Error("Failed connecting RabbitMQ: %s", err)
+		return
 	}
-	w.Logger.Info("[Done]")
-	w.Connection = conn
-	return nil
-}
 
-func (w *Worker) OpenChannel() error {
 	w.Logger.Info("Opening channel...")
-	ch, err := w.Connection.Channel()
+	chn, err := conn.Channel()
 	if err != nil {
-		return w.Logger.Error("Failed to open a channel: %s", err)
+		return
 	}
-	w.Logger.Info("[Done]")
-	w.Channel = ch
-	return nil
-}
 
-func (w *Worker) SetupPrefetch() error {
-	p := w.Config.Worker.Prefetch
 	w.Logger.Info("Setting QoS... ")
 	if p.Count == 0 {
 		p.Count = 3
 	}
-	err := w.Channel.Qos(
-		p.Count,  // prefetchCount int
-		0,        // prefetchSize int
-		p.Global, // global bool
-	)
-	if err != nil {
-		return w.Logger.Error("Failed to set QoS: %s", err)
+	// Args: prefetchCount, prefetchSize int, global bool
+	if err = chn.Qos(p.Count, 0, p.Global); err != nil {
+		return
 	}
-	w.Logger.Info("[Done]")
-	return nil
+
+	w.Connection = conn
+	w.Channel = chn
+
+	return
 }
 
-func (w *Worker) CreateQueue() error {
+func (w *Worker) createQueueAndExchange() (err error) {
 	q := w.Config.Worker.Queue
-	w.Logger.Info("Declaring queue [%s]...", q.Name)
-	_, err := w.Channel.QueueDeclare(
-		q.Name,       // name string
-		q.Durable,    // durable bool
-		q.AutoDelete, // autoDelete bool
-		false,        // exclusive bool
-		false,        // noWait bool
-		nil,          // args Table
-	)
-	if err != nil {
-		return w.Logger.Error("Failed to declare queue: %s", err)
-	}
-	w.Logger.Info("[Done]")
-	return nil
-}
-
-func (w *Worker) CreateExchange() error {
-	var err error
-
 	e := w.Config.Worker.Exchange
+
+	// Create queue
+	w.Logger.Info("Declaring queue [%s]...", q.Name)
+	// Args: name string, durable, autoDelete, exclusive, noWait bool, args Table
+	_, err = w.Channel.QueueDeclare(
+		q.Name, q.Durable, q.AutoDelete, false, false, nil)
+	if err != nil {
+		return
+	}
+
+	// Create exchange
 	if e.Name == "" {
 		w.Logger.Info("Empty Exchange name - use default exchange.")
-		return nil
+		return
 	}
 	w.Logger.Info("Declaring exchange [%s]...", e.Name)
 	if e.Type == "" {
 		e.Type = "direct"
 	}
+	// Args: name, kind string, durable, autoDelete, internal, noWait bool, args Table
 	err = w.Channel.ExchangeDeclare(
-		e.Name,       // name string
-		e.Type,       // kind string
-		e.Durable,    // durable bool
-		e.AutoDelete, // autoDelete bool
-		false,        // internal bool
-		false,        // noWait bool
-		amqp.Table{}, // args Table
-	)
+		e.Name, e.Type, e.Durable, e.AutoDelete, false, false, nil)
 	if err != nil {
-		return w.Logger.Error("Failed to declare exchange: %s", err)
+		return
 	}
-	w.Logger.Info("[Done]")
 
-	q := w.Config.Worker.Queue
+	// Bind queue and exchange
 	w.Logger.Info("Binding queue [%s] to exchange [%s]...", q.Name, e.Name)
-	err = w.Channel.QueueBind(
-		q.Name, // name string
-		"",     // key string
-		e.Name, // exchange string
-		false,  // noWait bool
-		nil,    // args Table
-	)
+	// Args: name, key, exchange string, noWait bool, args Table
+	err = w.Channel.QueueBind(q.Name, "", e.Name, false, nil)
 	if err != nil {
-		return w.Logger.Error("Failed to bind queue to exchange: %s", err)
+		return
 	}
-	w.Logger.Info("[Done]")
 
-	return nil
+	return
 }
 
-func (w *Worker) Consume() error {
+func (w *Worker) Consume() (err error) {
+	defer func() {
+		w.Connection.Close()
+		w.Channel.Close()
+		w.Logger.Flush()
+	}()
+
+	w.handleConnectionCloseError()
+
+	msgs, err := w.listenToQueue()
+	if err != nil {
+		return
+	}
+	w.forwardMessages(msgs)
+
+	return
+}
+
+func (w *Worker) handleConnectionCloseError() {
+	closeErr := make(chan *amqp.Error)
+	w.Connection.NotifyClose(closeErr)
+	go func() {
+		w.Logger.Exit("Connection closed: %v", <-closeErr)
+	}()
+}
+
+func (w *Worker) listenToQueue() (<-chan amqp.Delivery, error) {
 	w.Logger.Info("Starting a new consumer...")
 	msgs, err := w.Channel.Consume(
 		w.Config.Worker.Queue.Name, // queue string
@@ -159,39 +146,35 @@ func (w *Worker) Consume() error {
 		nil,   // args Table
 	)
 	if err != nil {
-		return w.Logger.Error("Failed to register a consumer: %s", err)
+		return nil, err
 	}
-	w.Logger.Info("[Done]")
+	return msgs, nil
+}
 
-	defer w.Connection.Close()
-	defer w.Channel.Close()
-
-	closeErr := make(chan *amqp.Error)
-	w.Connection.NotifyClose(closeErr)
-	go func() {
-		w.Logger.Error("Connection closed: %v", <-closeErr)
-		os.Exit(10)
-	}()
-
+func (w *Worker) forwardMessages(msgs <-chan amqp.Delivery) {
 	forever := make(chan bool)
+
 	go func() {
 		for m := range msgs {
-			if out, err := w.Cmd(m.Body).CombinedOutput(); err != nil {
+			if out, err := w.cmd(m.Body).CombinedOutput(); err != nil {
 				w.Logger.Error("Failed to process message: %s \n Output: %s", err, out)
+				// Sleep for 5 seconds and then retry
+				time.Sleep(5 * time.Second)
 				m.Nack(true, true)
 			} else {
 				w.Logger.Info("One message processed")
 				m.Ack(true)
 			}
+			w.Logger.Flush()
 		}
 	}()
-	w.Logger.Info("Waiting for messages...")
-	<-forever
 
-	return nil
+	w.Logger.Info("Waiting for messages...")
+	w.Logger.Flush()
+	<-forever
 }
 
-func (w *Worker) Cmd(msg []byte) *exec.Cmd {
+func (w *Worker) cmd(msg []byte) *exec.Cmd {
 	var name string = w.Config.Worker.Script
 	var args []string
 

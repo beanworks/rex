@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/beanworks/rex/rabbit"
 	"github.com/spf13/cobra"
@@ -15,11 +15,11 @@ A config file will need to be provided, and passed into this command.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, err := rabbit.NewLogger(&Config)
 		if err != nil {
-			panic(fmt.Errorf("Unabled to create logger: %s \n", err))
+			log.Fatalf("Unabled to create logger: %s \n", err)
 		}
 		worker, err := rabbit.NewWorker(&Config, logger)
 		if err != nil {
-			panic(fmt.Errorf("Rex had some trouble starting to work: %s \n", err))
+			log.Fatalf("Rex had some trouble starting to work: %s \n", err)
 		}
 		worker.Consume()
 	},

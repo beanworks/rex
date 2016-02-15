@@ -27,14 +27,9 @@ type Config struct {
 		Script string
 	}
 	Logger struct {
-		Appenders struct {
-			File struct {
-				Enabled bool
-				Path    string
-			}
-			Echo struct {
-				Enabled bool
-			}
-		}
+		LogToStderr     bool   `mapstructure:"log_to_stderr"`
+		AlsoLogToStderr bool   `mapstructure:"also_log_to_stderr"`
+		StderrThreshold string `mapstructure:"stderr_threshold"`
+		LogDir          string `mapstructure:"log_dir"`
 	}
 }

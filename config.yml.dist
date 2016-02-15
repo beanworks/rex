@@ -21,9 +21,6 @@ worker:
   script: "ps aux"
 
 logger:
-  appenders:
-    file:
-      enabled: true
-      path: ./rex.log
-    echo:
-      enabled: true
+  log_to_stderr: false
+  also_log_to_stderr: true
+  log_dir: "./logs"
