@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/url"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -19,7 +20,6 @@ type Worker struct {
 }
 
 func NewWorker(c *Config, l *Logger) (*Worker, error) {
-	defer l.Flush()
 	w := &Worker{Config: c, Logger: l}
 	if err := w.connect(); err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (w *Worker) Consume() (err error) {
 	defer func() {
 		w.Connection.Close()
 		w.Channel.Close()
-		w.Logger.Flush()
+		w.Logger.Close()
 	}()
 
 	w.handleConnectionCloseError()
@@ -130,7 +130,9 @@ func (w *Worker) handleConnectionCloseError() {
 	closeErr := make(chan *amqp.Error)
 	w.Connection.NotifyClose(closeErr)
 	go func() {
-		w.Logger.Exit("Connection closed: %v", <-closeErr)
+		w.Logger.Error("Connection closed: %v", <-closeErr)
+		w.Logger.Close()
+		os.Exit(1)
 	}()
 }
 
@@ -165,12 +167,10 @@ func (w *Worker) forwardMessages(msgs <-chan amqp.Delivery) {
 				w.Logger.Info("One message processed")
 				m.Ack(true)
 			}
-			w.Logger.Flush()
 		}
 	}()
 
 	w.Logger.Info("Waiting for messages...")
-	w.Logger.Flush()
 	<-forever
 }
 

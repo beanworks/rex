@@ -26,10 +26,5 @@ type Config struct {
 		}
 		Script string
 	}
-	Logger struct {
-		LogToStderr     bool   `mapstructure:"log_to_stderr"`
-		AlsoLogToStderr bool   `mapstructure:"also_log_to_stderr"`
-		StderrThreshold string `mapstructure:"stderr_threshold"`
-		LogDir          string `mapstructure:"log_dir"`
-	}
+	Logger LoggerConfig
 }

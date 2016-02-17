@@ -21,6 +21,7 @@ worker:
   script: "ps aux"
 
 logger:
-  log_to_stderr: false
-  also_log_to_stderr: true
-  log_dir: "./logs"
+  output: both
+  formatter: text
+  level: debug
+  log_file: ./rex.log
