@@ -11,6 +11,11 @@
 			"Rev": "5c4df71dfe9ac89ef6287afc05e4c1b16ae65a1e"
 		},
 		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.9.0-3-g3455d89",
+			"Rev": "3455d89ac9652295c85db2a98ea32f1d61c380bc"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/hcl",
 			"Rev": "e96d23138c76470c808bf6586bdaf981bbd25cae"
 		},
@@ -59,6 +64,10 @@
 		{
 			"ImportPath": "github.com/streadway/amqp",
 			"Rev": "b4f3ceab0337f013208d31348b578d83c0064744"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "50c6bc5e4292a1d4e65c6e9be5f53be28bcbe28e"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",
