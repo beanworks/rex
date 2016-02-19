@@ -16,9 +16,10 @@ worker:
     global: true
   queue:
     name: rex.ha.testing
+    routing_key: rex.ha.testing
     durable: true
     auto_delete: false
-  script: "ps aux"
+  script: "docker exec bean_api_1 /var/bean/app/console --env=prod bean:image:worker"
 
 logger:
   output: both

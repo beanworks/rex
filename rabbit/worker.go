@@ -100,7 +100,7 @@ func (w *Worker) createQueueAndExchange() (err error) {
 	// Bind queue and exchange
 	w.Logger.Info("Binding queue [%s] to exchange [%s]...", q.Name, e.Name)
 	// Args: name, key, exchange string, noWait bool, args Table
-	err = w.Channel.QueueBind(q.Name, "", e.Name, false, nil)
+	err = w.Channel.QueueBind(q.Name, q.RoutingKey, e.Name, false, nil)
 	if err != nil {
 		return
 	}
@@ -158,13 +158,14 @@ func (w *Worker) forwardMessages(msgs <-chan amqp.Delivery) {
 
 	go func() {
 		for m := range msgs {
+			w.Logger.Info("New message came in. Start processing...")
 			if out, err := w.cmd(m.Body).CombinedOutput(); err != nil {
 				w.Logger.Error("Failed to process message: %s \n Output: %s", err, out)
 				// Sleep for 5 seconds and then retry
 				time.Sleep(5 * time.Second)
 				m.Nack(true, true)
 			} else {
-				w.Logger.Info("One message processed")
+				w.Logger.Info("[Message Processed]")
 				m.Ack(true)
 			}
 		}

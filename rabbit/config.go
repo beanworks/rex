@@ -21,6 +21,7 @@ type Config struct {
 		}
 		Queue struct {
 			Name       string
+			RoutingKey string `mapstructure:"routing_key"`
 			Durable    bool
 			AutoDelete bool `mapstructure:"auto_delete"`
 		}
