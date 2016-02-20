@@ -8,7 +8,7 @@ type Config struct {
 		Vhost    string
 		Port     int
 	}
-	Worker struct {
+	Consumer struct {
 		Exchange struct {
 			Name       string
 			Type       string

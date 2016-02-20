@@ -17,11 +17,15 @@ A config file will need to be provided, and passed into this command.`,
 		if err != nil {
 			log.Fatalf("Unabled to create logger: %s \n", err)
 		}
-		worker, err := rabbit.NewWorker(&Config, logger)
+		defer logger.Close()
+		rex, err := rabbit.NewRex(&Config, logger)
 		if err != nil {
-			log.Fatalf("Rex had some trouble starting to work: %s \n", err)
+			logger.Fatalf("Rex had some trouble starting to work: %s \n", err)
 		}
-		worker.Consume()
+		defer rex.Close()
+		if err := rex.Consume(); err != nil {
+			logger.Fatalf("Life is hard, and Rex said he couldn't consume any messages: %s \n", err)
+		}
 	},
 }
 

@@ -20,18 +20,18 @@ type Logger struct {
 	file   *os.File
 }
 
-func NewLogger(c *Config) (*Logger, error) {
-	l := &Logger{config: &c.Logger}
-	if err := l.setOutput(); err != nil {
-		return nil, err
+func NewLogger(c *Config) (l *Logger, err error) {
+	l = &Logger{config: &c.Logger}
+	if err = l.setOutput(); err != nil {
+		return
 	}
-	if err := l.setFormatter(); err != nil {
-		return nil, err
+	if err = l.setFormatter(); err != nil {
+		return
 	}
-	if err := l.setLevel(); err != nil {
-		return nil, err
+	if err = l.setLevel(); err != nil {
+		return
 	}
-	return l, nil
+	return
 }
 
 func (l *Logger) setOutput() error {
@@ -98,14 +98,14 @@ func (l *Logger) Close() {
 	}
 }
 
-func (l *Logger) Debug(format string, v ...interface{}) {
-	log.Debugf(format, v...)
-}
-
-func (l *Logger) Info(format string, v ...interface{}) {
+func (l *Logger) Infof(format string, v ...interface{}) {
 	log.Infof(format, v...)
 }
 
-func (l *Logger) Error(format string, v ...interface{}) {
+func (l *Logger) Errorf(format string, v ...interface{}) {
 	log.Errorf(format, v...)
+}
+
+func (l *Logger) Fatalf(format string, v ...interface{}) {
+	log.Fatalf(format, v...)
 }

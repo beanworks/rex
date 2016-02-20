@@ -5,7 +5,7 @@ connection:
   vhost: rex
   port: 5672
 
-worker:
+consumer:
   exchange:
     name: rex.xchange
     type: direct
