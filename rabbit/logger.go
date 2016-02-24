@@ -18,6 +18,9 @@ type LoggerConfig struct {
 type Logger struct {
 	config *LoggerConfig
 	file   *os.File
+
+	// Embed logrus.Logger
+	log.Logger
 }
 
 func NewLogger(c *Config) (l *Logger, err error) {
@@ -52,7 +55,7 @@ func (l *Logger) setOutput() error {
 	if output == "stderr" || output == "both" || len(writers) == 0 {
 		writers = append(writers, os.Stderr)
 	}
-	log.SetOutput(io.MultiWriter(writers...))
+	l.Out = io.MultiWriter(writers...)
 	return nil
 }
 
@@ -60,11 +63,9 @@ func (l *Logger) setFormatter() error {
 	formatter := l.config.Formatter
 	switch formatter {
 	case "text":
-		log.SetFormatter(&log.TextFormatter{
-			DisableColors: true,
-		})
+		l.Formatter = &log.TextFormatter{DisableColors: true}
 	case "json":
-		log.SetFormatter(&log.JSONFormatter{})
+		l.Formatter = &log.JSONFormatter{}
 	default:
 		return fmt.Errorf("Unknown logger formatter type: %s", formatter)
 	}
@@ -75,17 +76,17 @@ func (l *Logger) setLevel() error {
 	level := l.config.Level
 	switch level {
 	case "debug":
-		log.SetLevel(log.DebugLevel)
+		l.Level = log.DebugLevel
 	case "info":
-		log.SetLevel(log.InfoLevel)
+		l.Level = log.InfoLevel
 	case "warn":
-		log.SetLevel(log.WarnLevel)
+		l.Level = log.WarnLevel
 	case "error":
-		log.SetLevel(log.ErrorLevel)
+		l.Level = log.ErrorLevel
 	case "fatal":
-		log.SetLevel(log.FatalLevel)
+		l.Level = log.FatalLevel
 	case "panic":
-		log.SetLevel(log.PanicLevel)
+		l.Level = log.PanicLevel
 	default:
 		return fmt.Errorf("Unknown logger log level: %s", level)
 	}
@@ -96,16 +97,4 @@ func (l *Logger) Close() {
 	if l.file != nil {
 		l.file.Close()
 	}
-}
-
-func (l *Logger) Infof(format string, v ...interface{}) {
-	log.Infof(format, v...)
-}
-
-func (l *Logger) Errorf(format string, v ...interface{}) {
-	log.Errorf(format, v...)
-}
-
-func (l *Logger) Fatalf(format string, v ...interface{}) {
-	log.Fatalf(format, v...)
 }
