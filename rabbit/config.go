@@ -27,5 +27,10 @@ type Config struct {
 		}
 		Script string
 	}
-	Logger LoggerConfig
+	Logger struct {
+		Output    string
+		Formatter string
+		Level     string
+		LogFile   string `mapstructure:"log_file"`
+	}
 }

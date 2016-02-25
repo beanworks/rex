@@ -5,7 +5,7 @@ COMPOSE_ENV = env COMPOSE_PROJECT_NAME=rex \
 
 RABBIT_VHOST = rex
 RABBIT_USER = rex
-RABBIT_PASS = passw0rd
+RABBIT_PASS = pwd
 
 RABBIT_1_CTL = docker exec rex_rabbitmq1_1 rabbitmqctl
 RABBIT_2_CTL = docker exec rex_rabbitmq2_1 rabbitmqctl

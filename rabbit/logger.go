@@ -8,23 +8,16 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-type LoggerConfig struct {
-	Output    string
-	Formatter string
-	Level     string
-	LogFile   string `mapstructure:"log_file"`
-}
-
 type Logger struct {
-	config *LoggerConfig
+	config *Config
 	file   *os.File
 
-	// Embed logrus.Logger
+	// Embedding logrus.Logger
 	log.Logger
 }
 
 func NewLogger(c *Config) (l *Logger, err error) {
-	l = &Logger{config: &c.Logger}
+	l = &Logger{config: c}
 	if err = l.setOutput(); err != nil {
 		return
 	}
@@ -39,8 +32,8 @@ func NewLogger(c *Config) (l *Logger, err error) {
 
 func (l *Logger) setOutput() error {
 	var writers = []io.Writer{}
-	output := l.config.Output
-	logfile := l.config.LogFile
+	output := l.config.Logger.Output
+	logfile := l.config.Logger.LogFile
 	if output == "file" || output == "both" {
 		if logfile == "" {
 			logfile = "./rex.log"
@@ -60,7 +53,7 @@ func (l *Logger) setOutput() error {
 }
 
 func (l *Logger) setFormatter() error {
-	formatter := l.config.Formatter
+	formatter := l.config.Logger.Formatter
 	switch formatter {
 	case "text":
 		l.Formatter = &log.TextFormatter{DisableColors: true}
@@ -73,7 +66,7 @@ func (l *Logger) setFormatter() error {
 }
 
 func (l *Logger) setLevel() error {
-	level := l.config.Level
+	level := l.config.Logger.Level
 	switch level {
 	case "debug":
 		l.Level = log.DebugLevel

@@ -1,7 +1,7 @@
 connection:
   host: 192.168.99.100
   username: rex
-  password: passw0rd
+  password: pwd
   vhost: rex
   port: 5672
 
