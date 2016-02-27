@@ -20,6 +20,7 @@ consumer:
     durable: true
     auto_delete: false
   script: "docker exec bean_api_1 /var/bean/app/console --env=prod bean:image:worker"
+  retry_interval: 5
 
 logger:
   output: both

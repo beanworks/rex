@@ -146,15 +146,20 @@ func (r *Rex) listenToQueue() (<-chan amqp.Delivery, error) {
 }
 
 func (r *Rex) forwardMessages(msgs <-chan amqp.Delivery) {
-	forever := make(chan bool)
+	retryInterval := r.Config.Consumer.RetryInterval
+	if retryInterval == 0 {
+		// Default retry interval in seconds
+		retryInterval = 15
+	}
 
+	forever := make(chan bool)
 	go func() {
 		for m := range msgs {
 			r.Logger.Infof("New message came in. Start processing...")
 			if out, err := r.cmd(m.Body).CombinedOutput(); err != nil {
 				r.Logger.Errorf("Failed to process message: %s \n Output: %s", err, out)
-				// Sleep for 5 seconds and then retry
-				time.Sleep(5 * time.Second)
+				// Sleep and then retry
+				time.Sleep(time.Duration(retryInterval) * time.Second)
 				m.Nack(true, true)
 			} else {
 				r.Logger.Infof("[Message Processed]")
@@ -162,7 +167,6 @@ func (r *Rex) forwardMessages(msgs <-chan amqp.Delivery) {
 			}
 		}
 	}()
-
 	r.Logger.Infof("Waiting for messages...")
 	<-forever
 }

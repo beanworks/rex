@@ -25,7 +25,8 @@ type Config struct {
 			Durable    bool
 			AutoDelete bool `mapstructure:"auto_delete"`
 		}
-		Script string
+		Script        string
+		RetryInterval int `mapstructure:"retry_interval"`
 	}
 	Logger struct {
 		Output    string
