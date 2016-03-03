@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/beanworks/rex/rabbit"
@@ -58,12 +59,10 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
-	} else {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		log.Fatalf("Fatal error: config file: %s \n", err)
 	}
 
 	if err := viper.Unmarshal(&Config); err != nil {
-		panic(fmt.Errorf("Unable to decode config into struct, %s \n", err))
+		log.Fatalf("Unable to decode config into struct, %s \n", err)
 	}
 }
