@@ -11,8 +11,6 @@ before_install:
 
 install:
   - go install -race -v std
-  - go get -race -t ./...
-  - go install -race -v ./...
 
 script:
   - $HOME/gopath/bin/golint .
