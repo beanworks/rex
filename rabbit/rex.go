@@ -34,7 +34,7 @@ func (r *Rex) connect() (err error) {
 	c := r.Config.Connection
 	p := r.Config.Consumer.Prefetch
 
-	r.Logger.Infof("Connecting to RabbitMQ server...")
+	r.Logger.Infof("Connecting to RabbitMQ server [%s:%d]...", c.Host, c.Port)
 	conn, err := amqp.Dial(fmt.Sprintf(
 		"amqp://%s:%s@%s:%d/%s", // amqp scheme
 		url.QueryEscape(c.Username),
@@ -53,10 +53,10 @@ func (r *Rex) connect() (err error) {
 		return
 	}
 
-	r.Logger.Infof("Setting QoS... ")
 	if p.Count == 0 {
 		p.Count = 3
 	}
+	r.Logger.Infof("Setting QoS [prefetch: %d]...", p.Count)
 	// Args: prefetchCount, prefetchSize int, global bool
 	if err = chn.Qos(p.Count, 0, p.Global); err != nil {
 		return
