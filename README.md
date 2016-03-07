@@ -1,5 +1,6 @@
 # Rex
 
+[![Build Status](https://travis-ci.org/beanworks/rex.svg)](https://travis-ci.org/beanworks/rex)
 [![Go Report Card](https://goreportcard.com/badge/github.com/beanworks/rex)](https://goreportcard.com/report/github.com/beanworks/rex)
 
 Rex is a command line based RabbitMQ message consuming and distribution app.

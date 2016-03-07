@@ -30,3 +30,5 @@ _testmain.go
 c.out
 c.out.tmp
 rex
+
+!.*.yml
