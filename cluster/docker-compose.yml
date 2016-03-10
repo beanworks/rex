@@ -1,12 +1,12 @@
 rabbitmq1:
-  image: rabbitmq:3.6.0-management
+  image: rabbitmq:3.6.1-management
   ports:
     - "15672:15672"
   hostname: rabbitmq1
   environment:
     - RABBITMQ_ERLANG_COOKIE='Rex Rabbit Roots'
 rabbitmq2:
-  image: rabbitmq:3.6.0-management
+  image: rabbitmq:3.6.1-management
   ports:
     - "15673:15672"
   links:
@@ -15,7 +15,7 @@ rabbitmq2:
   environment:
     - RABBITMQ_ERLANG_COOKIE='Rex Rabbit Roots'
 rabbitmq3:
-  image: rabbitmq:3.6.0-management
+  image: rabbitmq:3.6.1-management
   ports:
     - "15674:15672"
   links:
