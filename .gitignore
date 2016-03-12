@@ -32,3 +32,6 @@ c.out.tmp
 rex
 
 !.*.yml
+
+dist/builds/
+dist/release/

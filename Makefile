@@ -29,3 +29,8 @@ cover:
 		tail -n +2 c.out.tmp >> c.out; \
 	done
 	$(GO_CMD) tool cover -html=c.out
+
+rel: release
+
+release:
+	./dist/release.sh

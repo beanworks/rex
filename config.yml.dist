@@ -1,5 +1,5 @@
 connection:
-  host: 192.168.99.100
+  host: localhost
   username: rex
   password: pwd
   vhost: rex
@@ -13,13 +13,13 @@ consumer:
     auto_delete: false
   prefetch:
     count: 3
-    global: true
+    global: false
   queue:
-    name: rex.ha.testing
-    routing_key: rex.ha.testing
+    name: rex.ha.queue
+    routing_key: rex.ha.queue
     durable: true
     auto_delete: false
-  script: "docker exec bean_api_1 /var/bean/app/console --env=prod bean:image:worker"
+  script: "your message processing script that takes the message body as an argument"
   retry_interval: 5
 
 logger:

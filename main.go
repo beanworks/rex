@@ -1,7 +1,12 @@
 package main
 
-import "github.com/beanworks/rex/cmd"
+import (
+	"runtime"
+
+	"github.com/beanworks/rex/cmd"
+)
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	cmd.Execute()
 }
