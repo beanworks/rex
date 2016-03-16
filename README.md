@@ -5,7 +5,9 @@
 
 <img align="left" src="https://cloud.githubusercontent.com/assets/965430/13627896/af1cf03a-e582-11e5-8de9-ca4b62665a10.jpg">
 
-Rex is a command line based RabbitMQ message consuming and distribution app.
+***Not a T-Rex***
+
+Rex is a high performance and concurrent RabbitMQ consumer that forwards messages to another worker script.
 
 Rex connects to a RabbitMQ server, and listens to a queue for messages. When a new message arrives,
 Rex forwards the message to another CLI software specified in config, and waits for execution result.
@@ -14,20 +16,48 @@ if a non-zero value returned.
 
 Rex is designed as a long running service suited with multithread, concurrency and cross-platform
 support. It's a good enhancement for your current RabbitMQ consumer/worker/subscriber written in
-languages like PHP, JavaScript/Node.js, Python, etc.
+languages like PHP, JavaScript/Node.js, Ruby, Python, etc.
 
-## Build rex from source
+## Getting started
 
-Golang 1.6+ is needed
+[Download](https://github.com/beanworks/rex/releases) precompiled binaries specific for your platform, and go from there:
 
 ```shell
-go get github.com/beanworks/rex
+wget https://github.com/beanworks/rex/releases/download/v0.1.0/rex_linux_amd64.tar.gz
+mkdir rex
+tar zxvf rex_linux_amd64.tar.gz -C rex
+mv ./rex/rex /usr/local/bin
 
 # create a config file from config.yml.dist and then:
 rex up -c /path/to/config.yml
 
 # or place the config to /etc/rex/config.yml and then:
 rex up
+```
+
+Config file can be placed in `/etc/rex/config.yml`, `$HOME/.rex/config.yml` or specified with a `--config | -c` flag.
+
+## Build rex from source
+
+There are two methods to build rex from source.
+
+**[Go 1.6+](https://golang.org/dl/) is needed**
+
+1. Use `go get` tool
+
+```shell
+go get github.com/beanworks/rex
+rex up -c /path/to/config.yml
+```
+
+2. Build with `make`
+
+```shell
+git clone git@github.com:beanworks/rex.git
+cd rex
+make
+mv ./rex/rex /usr/local/bin
+rex up -c /path/to/config.yml
 ```
 
 ## Usage
