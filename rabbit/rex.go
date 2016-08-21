@@ -2,7 +2,6 @@ package rabbit
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -12,11 +11,6 @@ import (
 
 	"github.com/streadway/amqp"
 )
-
-type Message struct {
-	Body        string `json:"body"`
-	Redelivered bool   `json:"redelivered"`
-}
 
 type Rex struct {
 	Config     *Config
@@ -160,24 +154,16 @@ func (r *Rex) forwardMessages(msgs <-chan amqp.Delivery) {
 
 	forever := make(chan bool)
 	go func() {
-		for msg := range msgs {
+		for m := range msgs {
 			r.Logger.Infof("New message came in. Start processing...")
-			m, err := json.Marshal(&Message{
-				Body:        string(msg.Body),
-				Redelivered: msg.Redelivered,
-			})
-			if err != nil {
-				r.Logger.Errorf("Failed to encode message to json: %s", err)
-				msg.Nack(true, true)
-			}
-			if out, err := r.cmd(m).CombinedOutput(); err != nil {
+			if out, err := r.cmd(m.Body).CombinedOutput(); err != nil {
 				r.Logger.Errorf("Failed to process message: %s \n Output: %s", err, out)
 				// Sleep and then retry
 				time.Sleep(time.Duration(retryInterval) * time.Second)
-				msg.Nack(true, true)
+				m.Nack(true, true)
 			} else {
 				r.Logger.Infof("[Message Processed]")
-				msg.Ack(true)
+				m.Ack(true)
 			}
 		}
 	}()
