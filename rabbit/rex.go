@@ -1,26 +1,36 @@
 package rabbit
 
 import (
-	"encoding/base64"
+	"crypto/md5"
 	"fmt"
 	"net/url"
-	"os"
-	"os/exec"
-	"strings"
+	"runtime"
 	"time"
 
 	"github.com/streadway/amqp"
 )
 
+const (
+	DefaultPrefetchCount = 10
+	DefaultRetryInterval = 30
+)
+
+// Rex represents the RabbitMQ consumer. It has methods connect to RabbitMQ, create exchange,
+// queue, bind queue to exchange with routing key, listen to channel for incoming messages,
+// forward message body to worker scripts, and ACK/NACK deliveries based on the worker script's
+// return code.
 type Rex struct {
-	Config     *Config
-	Logger     *Logger
-	Channel    *amqp.Channel
-	Connection *amqp.Connection
+	Amqp    AmqpConsumer
+	Config  *Config
+	Logger  *Logger
+	Script  ScriptCaller
+	Forever chan bool
 }
 
-func NewRex(c *Config, l *Logger) (r *Rex, err error) {
-	r = &Rex{Config: c, Logger: l}
+// NewRex returns a configured Rex instance. It will return a non nil error if anything goes
+// wrong when connecting to RabbitMQ, or creating queue and exchange.
+func NewRex(c *Config, l *Logger, a AmqpConsumer, s ScriptCaller) (r *Rex, err error) {
+	r = &Rex{Amqp: a, Config: c, Logger: l, Script: s, Forever: make(chan bool)}
 	if err = r.connect(); err != nil {
 		return
 	}
@@ -35,7 +45,7 @@ func (r *Rex) connect() (err error) {
 	p := r.Config.Consumer.Prefetch
 
 	r.Logger.Infof("Connecting to RabbitMQ server [%s:%d]...", c.Host, c.Port)
-	conn, err := amqp.Dial(fmt.Sprintf(
+	_, err = r.Amqp.Dial(fmt.Sprintf(
 		"amqp://%s:%s@%s:%d/%s", // amqp scheme
 		url.QueryEscape(c.Username),
 		url.QueryEscape(c.Password),
@@ -48,22 +58,19 @@ func (r *Rex) connect() (err error) {
 	}
 
 	r.Logger.Infof("Opening channel...")
-	chn, err := conn.Channel()
+	_, err = r.Amqp.Channel()
 	if err != nil {
 		return
 	}
 
 	if p.Count == 0 {
-		p.Count = 3
+		p.Count = DefaultPrefetchCount
 	}
 	r.Logger.Infof("Setting QoS [prefetch: %d]...", p.Count)
 	// Args: prefetchCount, prefetchSize int, global bool
-	if err = chn.Qos(p.Count, 0, p.Global); err != nil {
+	if err = r.Amqp.Qos(p.Count, 0, p.Global); err != nil {
 		return
 	}
-
-	r.Connection = conn
-	r.Channel = chn
 
 	return
 }
@@ -75,7 +82,7 @@ func (r *Rex) createQueueAndExchange() (err error) {
 	// Create queue
 	r.Logger.Infof("Declaring queue [%s]...", q.Name)
 	// Args: name string, durable, autoDelete, exclusive, noWait bool, args Table
-	_, err = r.Channel.QueueDeclare(q.Name, q.Durable, q.AutoDelete, false, false, nil)
+	_, err = r.Amqp.QueueDeclare(q.Name, q.Durable, q.AutoDelete, false, false, nil)
 	if err != nil {
 		return
 	}
@@ -83,6 +90,10 @@ func (r *Rex) createQueueAndExchange() (err error) {
 	// Create exchange
 	if e.Name == "" {
 		r.Logger.Infof("Empty Exchange name - use default exchange.")
+		// The default exchange is implicitly bound to every queue,
+		// with a routing key equal to the queue name. It is not possible
+		// to explicitly bind to, or unbind from the default exchange.
+		// It also cannot be deleted.
 		return
 	}
 	r.Logger.Infof("Declaring exchange [%s]...", e.Name)
@@ -90,7 +101,7 @@ func (r *Rex) createQueueAndExchange() (err error) {
 		e.Type = "direct"
 	}
 	// Args: name, kind string, durable, autoDelete, internal, noWait bool, args Table
-	err = r.Channel.ExchangeDeclare(e.Name, e.Type, e.Durable, e.AutoDelete, false, false, nil)
+	err = r.Amqp.ExchangeDeclare(e.Name, e.Type, e.Durable, e.AutoDelete, false, false, nil)
 	if err != nil {
 		return
 	}
@@ -98,7 +109,7 @@ func (r *Rex) createQueueAndExchange() (err error) {
 	// Bind queue and exchange
 	r.Logger.Infof("Binding queue [%s] to exchange [%s]...", q.Name, e.Name)
 	// Args: name, key, exchange string, noWait bool, args Table
-	err = r.Channel.QueueBind(q.Name, q.RoutingKey, e.Name, false, nil)
+	err = r.Amqp.QueueBind(q.Name, q.RoutingKey, e.Name, false, nil)
 	if err != nil {
 		return
 	}
@@ -106,31 +117,44 @@ func (r *Rex) createQueueAndExchange() (err error) {
 	return
 }
 
-func (r *Rex) Consume() (err error) {
-	r.handleConnectionCloseError()
+type NotifyCloseCallback func()
 
+// NotifyClose registers a listener for when the server sends a channel or connection
+// exception in the form of a Connection.Close or Channel.Close method. Connection
+// exceptions will be broadcast to all open channels and all channels will be closed,
+// where channel exceptions will only be broadcast to listeners to this channel.
+func (r *Rex) NotifyClose(fn NotifyCloseCallback) {
+	err := make(chan *amqp.Error, 1)
+	r.Amqp.NotifyClose(err)
+	go func() {
+		r.Logger.Errorf("Connection closed: %v", <-err)
+		r.Close()
+		fn()
+	}()
+}
+
+// Close closes RabbitMQ connection and channel. It also closes Logger.
+func (r *Rex) Close() {
+	r.Amqp.Close()
+	r.Logger.Close()
+}
+
+// Consume listens to RabbitMQ channel, forward each message's body to a worker script.
+// Based on return code of the worker script, it acknowledge the delivery when the code
+// is 0, and negatively acknowledge the delivery when the code is 1.
+func (r *Rex) Consume() (err error) {
 	msgs, err := r.listenToQueue()
 	if err != nil {
 		return
 	}
-	r.forwardMessages(msgs)
+	r.handleMessages(msgs, r.forwardToWorker)
 
 	return
 }
 
-func (r *Rex) handleConnectionCloseError() {
-	closeErr := make(chan *amqp.Error)
-	r.Connection.NotifyClose(closeErr)
-	go func() {
-		r.Logger.Errorf("Connection closed: %v", <-closeErr)
-		r.Close()
-		os.Exit(1)
-	}()
-}
-
 func (r *Rex) listenToQueue() (<-chan amqp.Delivery, error) {
 	r.Logger.Infof("Starting a new consumer...")
-	msgs, err := r.Channel.Consume(
+	msgs, err := r.Amqp.Consume(
 		r.Config.Consumer.Queue.Name, // queue string
 		"",    // consumer string
 		false, // autoAck bool
@@ -145,46 +169,52 @@ func (r *Rex) listenToQueue() (<-chan amqp.Delivery, error) {
 	return msgs, nil
 }
 
-func (r *Rex) forwardMessages(msgs <-chan amqp.Delivery) {
-	retryInterval := r.Config.Consumer.RetryInterval
+type MessageForwarder func(msgs <-chan amqp.Delivery, retryInterval int)
+
+func (r *Rex) handleMessages(msgs <-chan amqp.Delivery, forwarder MessageForwarder) {
+	w := r.Config.Consumer.Worker
+
+	retryInterval := w.RetryInterval
 	if retryInterval == 0 {
-		// Default retry interval in seconds
-		retryInterval = 15
+		retryInterval = DefaultRetryInterval
+	}
+	workerCount := w.Count
+	if workerCount == 0 {
+		workerCount = runtime.NumCPU()
 	}
 
-	forever := make(chan bool)
-	go func() {
-		for m := range msgs {
-			r.Logger.Infof("New message came in. Start processing...")
-			if out, err := r.cmd(m.Body).CombinedOutput(); err != nil {
-				r.Logger.Errorf("Failed to process message: %s \n Output: %s", err, out)
-				// Sleep and then retry
-				time.Sleep(time.Duration(retryInterval) * time.Second)
-				m.Nack(true, true)
-			} else {
-				r.Logger.Infof("[Message Processed]")
-				m.Ack(true)
-			}
-		}
-	}()
 	r.Logger.Infof("Waiting for messages...")
-	<-forever
-}
-
-func (r *Rex) cmd(msg []byte) *exec.Cmd {
-	var name string = r.Config.Consumer.Script
-	var args []string
-
-	if subs := strings.Split(name, " "); len(subs) > 1 {
-		name, args = subs[0], subs[1:]
+	for i := 0; i < workerCount; i++ {
+		go forwarder(msgs, retryInterval)
 	}
-
-	args = append(args, base64.StdEncoding.EncodeToString(msg))
-	return exec.Command(name, args...)
+	<-r.Forever
 }
 
-func (r *Rex) Close() {
-	r.Connection.Close()
-	r.Channel.Close()
-	r.Logger.Close()
+func (r Rex) forwardToWorker(msgs <-chan amqp.Delivery, retryInterval int) {
+	for m := range msgs {
+		md5sum := md5.Sum(m.Body)
+		r.Logger.Infof("New message came in. md5sum: %x", md5sum)
+		r.Logger.Debugf(
+			"Message md5sum: %x; Redelivered: %v; Body: %v",
+			md5sum, m.Redelivered, string(m.Body),
+		)
+		out, err := r.Script.ExecWith(m.Body)
+		if err != nil {
+			r.Logger.Errorf(
+				"Failed to process message. md5sum: %x; Error: %s; Output: %s",
+				md5sum, err, out,
+			)
+			// Sleep and then retry
+			time.Sleep(time.Duration(retryInterval) * time.Second)
+			m.Nack(false, true)
+			r.Logger.Debugf("Message Nack'ed and will be redelivered. md5sum: %x", md5sum)
+		} else {
+			r.Logger.Debugf(
+				"Command successfully executed with. md5sum: %x; Output: %s",
+				md5sum, out,
+			)
+			m.Ack(false)
+			r.Logger.Infof("Message Processed. md5sum: %x", md5sum)
+		}
+	}
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/beanworks/rex/rabbit"
 	"github.com/spf13/cobra"
@@ -21,11 +22,21 @@ A config file will need to be provided, and passed into this command.`,
 		defer logger.Close()
 
 		logger.Infof("Using config file: %s", viper.ConfigFileUsed())
-		rex, err := rabbit.NewRex(&Config, logger)
+		rex, err := rabbit.NewRex(
+			&Config,
+			logger,
+			&rabbit.Amqp{},
+			&rabbit.Script{Config: &Config},
+		)
 		if err != nil {
 			return fmt.Errorf("Rex encountered some trouble to start up: %s \n", err)
 		}
 		defer rex.Close()
+
+		rex.NotifyClose(func() {
+			os.Exit(1)
+		})
+
 		if err := rex.Consume(); err != nil {
 			return fmt.Errorf("Life is hard! Rex couldn't consume any messages. \nSee the reason: %s \n", err)
 		}

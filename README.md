@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/beanworks/rex.svg)](https://travis-ci.org/beanworks/rex)
 [![Go Report Card](https://goreportcard.com/badge/github.com/beanworks/rex)](https://goreportcard.com/report/github.com/beanworks/rex)
+[![GoDoc](https://godoc.org/github.com/beanworks/rex?status.svg)](https://godoc.org/github.com/beanworks/rex)
 
 <img align="left" src="https://cloud.githubusercontent.com/assets/965430/13627896/af1cf03a-e582-11e5-8de9-ca4b62665a10.jpg">
 
@@ -22,7 +23,7 @@ languages like PHP, JavaScript/Node.js, Ruby, Python, etc.
 
 [Download](https://github.com/beanworks/rex/releases) precompiled binaries specific for your platform, and go from there:
 
-```shell
+```bash
 wget https://github.com/beanworks/rex/releases/download/v0.1.0/rex_linux_amd64.tar.gz
 mkdir rex
 tar zxvf rex_linux_amd64.tar.gz -C rex
@@ -45,14 +46,14 @@ There are two methods to build rex from source.
 
 1. Use `go get` tool
 
-```shell
+```bash
 go get github.com/beanworks/rex
 rex up -c /path/to/config.yml
 ```
 
 2. Build with `make`
 
-```shell
+```bash
 git clone git@github.com:beanworks/rex.git
 cd rex
 make
@@ -83,4 +84,46 @@ Flags:
   -v, --version         Show rex version
 
 Use "rex [command] --help" for more information about a command.
+```
+
+## Contribution Guide
+
+Rex is written in golang with cobra (cli), viper (config), logrus (logging) and amqp (amqp protocol).
+It's dependencies managed by godep, unit tested with testify, and release managed by gox (cross compile)
+and make (Makefile).
+
+Set up golang development environment locally:
+
+```bash
+wget https://storage.googleapis.com/golang/go1.7.1.linux-amd64.tar.gz -P /tmp
+sudo tar zxf /tmp/go1.7.1.linux-amd64.tar.gz -C /usr/local
+mkdir -p $HOME/go
+cd $HOME/go
+mkdir bin pkg src
+# add the following lines to your .bashrc or .zshrc
+export GOPATH=$HOME/go
+export GOROOT=/usr/local/go
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+```
+
+Git clone the repo to local and build from source:
+
+```bash
+git clone git@github.com:beanworks/rex.git $HOME/go/src/github.com/beanworks/rex
+cd $HOME/go/src/github.com/beanworks/rex
+# build
+make
+# test
+make test
+# test that has more feedback
+make vtest
+# make coverage report
+make cover
+# make testing rabbitmq cluster (docker required)
+make cluster
+# make new release binaries
+make release
+# run rex that you just built from source
+cp config.yml.dist config.yml
+./rex up -c config.yml
 ```

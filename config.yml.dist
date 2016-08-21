@@ -12,15 +12,17 @@ consumer:
     durable: true
     auto_delete: false
   prefetch:
-    count: 3
+    count: 10
     global: false
   queue:
     name: rex.ha.queue
     routing_key: rex.ha.queue
     durable: true
     auto_delete: false
-  script: "your message processing script that takes the message body as an argument"
-  retry_interval: 5
+  worker:
+    count: 10
+    script: "your message processing script that takes the message body as an argument"
+    retry_interval: 30
 
 logger:
   output: both

@@ -8,6 +8,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// Logger inherits all the exported fields and method from logrus Logger. It's
+// configurable, and can write log to both stdin and a file.
 type Logger struct {
 	config *Config
 	file   *os.File
@@ -16,6 +18,9 @@ type Logger struct {
 	log.Logger
 }
 
+// NewLogger returns a configured Logger instance. It will return a non nil error
+// if anything goes wrong when configuring the Logger's output mode, formatter and
+// log level.
 func NewLogger(c *Config) (l *Logger, err error) {
 	l = &Logger{config: c}
 	if err = l.setOutput(); err != nil {
@@ -45,8 +50,8 @@ func (l *Logger) setOutput() error {
 		l.file = file
 		writers = append(writers, file)
 	}
-	if output == "stderr" || output == "both" || len(writers) == 0 {
-		writers = append(writers, os.Stderr)
+	if output == "stdout" || output == "both" || len(writers) == 0 {
+		writers = append(writers, os.Stdout)
 	}
 	l.Out = io.MultiWriter(writers...)
 	return nil
@@ -60,7 +65,7 @@ func (l *Logger) setFormatter() error {
 	case "json":
 		l.Formatter = &log.JSONFormatter{}
 	default:
-		return fmt.Errorf("Unknown logger formatter type: %s", formatter)
+		return fmt.Errorf("Unknown logger formatter: %s", formatter)
 	}
 	return nil
 }
@@ -81,11 +86,12 @@ func (l *Logger) setLevel() error {
 	case "panic":
 		l.Level = log.PanicLevel
 	default:
-		return fmt.Errorf("Unknown logger log level: %s", level)
+		return fmt.Errorf("Unknown logger level: %s", level)
 	}
 	return nil
 }
 
+// Close closes the log file if Logger is configured to write to a file.
 func (l *Logger) Close() {
 	if l.file != nil {
 		l.file.Close()
