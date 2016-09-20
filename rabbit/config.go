@@ -1,5 +1,8 @@
 package rabbit
 
+// Config defines the configuration for Rex. It helps transform the yml config
+// to a Go struct, which will be used and referenced directly in Logger and Rex
+// structs.
 type Config struct {
 	Connection struct {
 		Host     string
@@ -25,8 +28,11 @@ type Config struct {
 			Durable    bool
 			AutoDelete bool `mapstructure:"auto_delete"`
 		}
-		Script        string
-		RetryInterval int `mapstructure:"retry_interval"`
+		Worker struct {
+			Script        string
+			Count         int
+			RetryInterval int `mapstructure:"retry_interval"`
+		}
 	}
 	Logger struct {
 		Output    string

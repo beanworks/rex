@@ -1,7 +1,6 @@
 .PHONY: all
 
-VENDOR_FLAG = GO15VENDOREXPERIMENT=1
-GO_CMD = $(VENDOR_FLAG) godep go
+GO_CMD = godep go
 PKG = $$(go list ./... | grep -v /vendor/)
 
 all: build
@@ -9,15 +8,15 @@ all: build
 include cluster/rabbitmq.mk
 
 build: *.go
-	$(GO_CMD) build -o rex ./
+	$(GO_CMD) build -race -o rex ./
 
 test:
 	$(GO_CMD) vet $(PKG)
-	$(GO_CMD) test $(PKG)
+	$(GO_CMD) test -race $(PKG)
 
 vtest:
 	$(GO_CMD) vet -v $(PKG)
-	$(GO_CMD) test -v -cover $(PKG)
+	$(GO_CMD) test -race -v -cover $(PKG)
 
 clean:
 	$(GO_CMD) clean $(PKG)
