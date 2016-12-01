@@ -190,6 +190,12 @@ func TestCreateQueueAndExchange(t *testing.T) {
 	err = rex.createQueueAndExchange()
 	assert.NoError(t, err)
 
+	// Test with x-delayed-message exchange type
+	cfg.Consumer.Exchange.Type = "x-delayed-message"
+	rex = &Rex{&fakeAmqpBadExchangeDeclare{}, cfg, log, scr, done}
+	err = rex.createQueueAndExchange()
+	assert.NoError(t, err)
+
 	// Test with a custom exchange name
 	cfg.Consumer.Exchange.Name = "FakeExchange"
 	rex = &Rex{&fakeAmqpBadExchangeDeclare{}, cfg, log, scr, done}

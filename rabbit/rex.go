@@ -97,11 +97,19 @@ func (r *Rex) createQueueAndExchange() (err error) {
 		return
 	}
 	r.Logger.Infof("Declaring exchange [%s]...", e.Name)
+	var args amqp.Table
+
 	if e.Type == "" {
 		e.Type = "direct"
 	}
+
+	if e.Type == "x-delayed-message" {
+		table := make(map[string]interface{})
+		table["x-delayed-type"] = "direct"
+		args = table
+	}
 	// Args: name, kind string, durable, autoDelete, internal, noWait bool, args Table
-	err = r.Amqp.ExchangeDeclare(e.Name, e.Type, e.Durable, e.AutoDelete, false, false, nil)
+	err = r.Amqp.ExchangeDeclare(e.Name, e.Type, e.Durable, e.AutoDelete, false, false, args)
 	if err != nil {
 		return
 	}
